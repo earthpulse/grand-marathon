@@ -2,8 +2,6 @@
 
 This technical report details the end-to-end machine learning and geospatial pipeline developed for the **Grand Marathon** MVP. The system predicts daily wildfire hazard and computes rule-based operational priority within the **Larouco–Seadur Area of Interest (AOI)** in Galicia, Spain, during the catastrophic wildfire wave of August 2025.
 
----
-
 ## Section 1: Wildfire Events in the Area of Interest (AOI)
 
 ### The August 2025 Wildfire Wave in Galicia
@@ -32,14 +30,12 @@ The extreme severity of the 2025 wildfires was driven by a combination of factor
 2. **Socio-Economic Factors:** Rural depopulation and the abandonment of traditional forest management led to a massive accumulation of highly flammable undergrowth (fuel load) in the Galician hills.
 3. **Ignition Sources:** Investigations pointed to both negligence and arson. In Oímbra, judicial investigations focused on heavy machinery clearing brush on an extreme-risk day. In Carballeda de Avia, the Civil Guard arrested a local resident suspected of starting a fire that consumed 3,200 hectares.
 
----
-
 ## Section 2: AI Hazard Model (Notebook 01)
 
-The foundation of the wildfire risk pipeline is an AI-driven **Hazard Model** developed in `01_hazard_model.ipynb`. This model predicts the daily probability of fire occurrence (hazard) across the Area of Interest.
+The foundation of the wildfire risk pipeline is an AI-driven **Hazard Model** developed in [`01_hazard_model.ipynb`](01_hazard_model.ipynb). This model predicts the daily probability of fire occurrence (hazard) across the Area of Interest.
 
 ### Model Architecture
-The production hazard model is an **Optimized LightGBM Classifier** (`best_lgbm_model.joblib`) trained using `lightgbm` and `scikit-learn`. The model is designed to perform binary classification, outputting the probability that a given pixel on a given day is an active fire hotspot.
+The production hazard model is an **Optimized LightGBM Classifier** trained using `lightgbm` and `scikit-learn`. The model is designed to perform binary classification, outputting the probability that a given pixel on a given day is an active fire hotspot.
 
 ### Dataset Generation & Ground Truth
 To train the model, a balanced dataset was constructed using the `model/main.py` script:
@@ -89,7 +85,7 @@ The technical pipeline is structured into six sequential Jupyter Notebooks. The 
 ```text
 +-------------------------+      +-------------------------+
 |  01_hazard_model.ipynb  | ---> |  02_hazard_maps.ipynb   |
-|  (Trains RF Classifier) |      | (Generates Daily Hazard)|
+|  (Trains AI Model) |      | (Generates Daily Hazard)|
 +-------------------------+      +------------+------------+
                                               |
                                               v  [Daily Hazard Maps]
