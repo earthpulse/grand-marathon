@@ -25,19 +25,19 @@ The largest single event was the **Larouco-Seadur megafire**:
 
 The core predictive engine is a machine learning model that estimates daily fire hazard probabilities across the Area of Interest (AOI):
 
-- **Model:** A `scikit-learn` **Random Forest Classifier** trained on a balanced dataset (50% positive fire events, 50% negative non-fire events).
+- **Model:** An **Optimized LightGBM Classifier** (`best_lgbm_model.joblib`) trained on a balanced dataset (50% positive fire events, 50% negative non-fire events).
 - **Ground Truth:** Real-world active fire hotspots detected by the **VIIRS** satellite instrument in 2025.
 - **Features (Inputs):**
-  1. **`ndvi` (Normalized Difference Vegetation Index):** Derived from Sentinel-2 L2A satellite imagery to measure fuel dryness and vegetation health.
-  2. **`t2m_1` to `t2m_5` (5-Day Temperature Series):** Daily mean 2-meter air temperatures from **ERA5-Land reanalysis** looking back 5 days to capture cumulative heat stress.
-- **Performance:** Achieved a stratified test accuracy of **64.37%**.
-- **Model Selection & Tradeoffs:** Although more complex architectures like XGBoost, LightGBM, and CatBoost were trained and optimized (with LightGBM achieving the highest test accuracy of **71.04%**), the baseline Random Forest Classifier was selected for production. It offers superior spatiotemporal generalization, produces smoother and more stable continuous hazard probability gradients, simplifies deployment by removing heavy C++ runtime dependencies, and delivers identical operational utility under our binned 5x5x5 priority framework. For a detailed comparative analysis, see the **[model/README.md](model/README.md)**.
+  1. `**ndvi` (Normalized Difference Vegetation Index):** Derived from Sentinel-2 L2A satellite imagery to measure fuel dryness and vegetation health.
+  2. `**t2m_1` to `t2m_5` (5-Day Temperature Series):** Daily mean 2-meter air temperatures from **ERA5-Land reanalysis** looking back 5 days to capture cumulative heat stress.
+- **Performance:** Achieved a stratified test accuracy of **71.04%** (with an F1 Score of **73.50%**, Precision of **69.00%**, Recall of **78.63%**, and ROC AUC of **0.7757**).
+- **Model Selection & Tradeoffs:** After training and optimizing several candidate architectures (including Random Forest, XGBoost, LightGBM, and CatBoost), the **Optimized LightGBM Classifier** was selected and deployed for production. It delivers the highest predictive accuracy and generalization, maintains balanced calibration for smooth probability gradients, offers outstanding computational efficiency for daily map generation, and maximizes operational impact by providing the most reliable identification of high-risk areas. For a detailed comparative analysis and metrics, see the **[model/README.md](model/README.md)**.
 
 ---
 
 ## 3. Rule-Based Operational Priority Framework
 
-Rather than using a simple multiplicative risk index (\text{Hazard} \times \text{Exposure} \times \text{Vulnerability}), which often dilutes operational clarity, Grand Marathon implements a **decision-based, rule-based prioritization framework** using a **5×5×5 Lookup Table (LUT)**.
+Rather than using a simple multiplicative risk index (`Hazard × Exposure × Vulnerability`), which often dilutes operational clarity, Grand Marathon implements a **decision-based, rule-based prioritization framework** using a **5×5×5 Lookup Table (LUT)**.
 
 ### Ordinal Scale (0–4)
 
@@ -103,10 +103,10 @@ For a full technical and detailed report of the model, datasets, and pipeline, s
 
 ## 5. Repository Structure
 
-- `**model/`:** Jupyter Notebooks, training scripts, and the technical report for the machine learning and geospatial pipeline.
-- `**api/`:** FastAPI backend serving daily hazard maps, risk-enriched assets, and time-series analytics.
-- `**dashboard/`:** React / Vite frontend featuring an interactive map, daily alerts, and analytical charts.
-- `**data/`:** LFS-managed directory containing raw inputs, daily hazard GeoTIFFs, pre-calculated layers, and output JSON summaries.
+- `model/`: Jupyter Notebooks, training scripts, and the technical report for the machine learning and geospatial pipeline.
+- `api/`: FastAPI backend serving daily hazard maps, risk-enriched assets, and time-series analytics.
+- `dashboard/`: React / Vite frontend featuring an interactive map, daily alerts, and analytical charts.
+- `data/`: LFS-managed directory containing raw inputs, daily hazard GeoTIFFs, pre-calculated layers, and output JSON summaries.
 
 ---
 

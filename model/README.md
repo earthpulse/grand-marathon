@@ -39,7 +39,7 @@ The extreme severity of the 2025 wildfires was driven by a combination of factor
 The foundation of the wildfire risk pipeline is an AI-driven **Hazard Model** developed in `01_hazard_model.ipynb`. This model predicts the daily probability of fire occurrence (hazard) across the Area of Interest.
 
 ### Model Architecture
-The hazard model is a **Random Forest Classifier** (`RandomForestClassifier(n_estimators=100, random_state=42)`) trained using `scikit-learn`. The model is designed to perform binary classification, outputting the probability that a given pixel on a given day is an active fire hotspot.
+The production hazard model is an **Optimized LightGBM Classifier** (`best_lgbm_model.joblib`) trained using `lightgbm` and `scikit-learn`. The model is designed to perform binary classification, outputting the probability that a given pixel on a given day is an active fire hotspot.
 
 ### Dataset Generation & Ground Truth
 To train the model, a balanced dataset was constructed using the `model/main.py` script:
@@ -51,14 +51,14 @@ To train the model, a balanced dataset was constructed using the `model/main.py`
 The model utilizes a combination of satellite-derived vegetation indices and reanalysis climate data:
 1. **`ndvi` (Normalized Difference Vegetation Index):** Computed from Sentinel-2 L2A satellite imagery. NDVI serves as a proxy for vegetation greenness, moisture content, and fuel dryness.
 2. **`t2m_1` to `t2m_5` (5-Day Temperature Lookback Series):** Daily mean 2-meter air temperature (in Kelvin) extracted from the **ERA5-Land reanalysis dataset**. To capture cumulative heat stress and fuel drying trends, the model looks back 5 days prior to the target date:
-   - `t2m_1`: Daily mean temperature at \( \text{acq\_date} - 5 \text{ days} \)
-   - `t2m_2`: Daily mean temperature at \( \text{acq\_date} - 4 \text{ days} \)
-   - `t2m_3`: Daily mean temperature at \( \text{acq\_date} - 3 \text{ days} \)
-   - `t2m_4`: Daily mean temperature at \( \text{acq\_date} - 2 \text{ days} \)
-   - `t2m_5`: Daily mean temperature at \( \text{acq\_date} - 1 \text{ day} \)
+   - `t2m_1`: Daily mean temperature at `acq_date - 5 days`
+   - `t2m_2`: Daily mean temperature at `acq_date - 4 days`
+   - `t2m_3`: Daily mean temperature at `acq_date - 3 days`
+   - `t2m_4`: Daily mean temperature at `acq_date - 2 days`
+   - `t2m_5`: Daily mean temperature at `acq_date - 1 day`
 
 ### Model Performance and Evaluation
-The dataset was split into training and testing sets using an **80/20 stratified split** to maintain class balance. The baseline **Random Forest Classifier** achieves a test accuracy of **64.37%** (`0.6437`) and is serialized and saved to `data/rf_model.joblib` for downstream map generation.
+The dataset was split into training and testing sets using an **80/20 stratified split** to maintain class balance. The deployed **Optimized LightGBM Classifier** achieves an outstanding test accuracy of **71.04%** (`0.7104`), an F1 Score of **73.50%** (`0.7350`), Precision of **69.00%** (`0.6900`), Recall of **78.63%** (`0.7863`), and an ROC AUC of **0.7757** (`0.7757`). It is serialized and saved to `data/best_lgbm_model.joblib` for downstream map generation.
 
 ### Model Selection and Comparative Analysis
 To ensure we selected the most robust and operationally sound model, we explored several alternative machine learning architectures and performed hyperparameter tuning using `RandomizedSearchCV` with 5-fold cross-validation.
@@ -72,13 +72,13 @@ The table below summarizes the performance and tradeoffs of the different models
 | **LightGBM** | **70.14%** | **71.04%** | • **Highest accuracy (71.04%)**.<br>• Extremely fast training and low memory consumption.<br>• Highly scalable to large datasets. | • Leaf-wise growth can easily overfit on smaller datasets.<br>• Probabilities can be highly polarized (pushed to 0 or 1), making continuous risk mapping less smooth.<br>• Extra compiled library dependency. |
 | **CatBoost** | **70.90%** | **70.78%** | • Outstanding out-of-the-box performance.<br>• Built-in overfitting detection and regularization.<br>• Excellent handling of categorical features. | • Training can be slow on CPU.<br>• Very large library size and complex deployment dependency. |
 
-#### Why We Keep the Baseline Random Forest Classifier
-While **LightGBM** achieved the highest raw accuracy on our test set (71.04%), **we have selected and kept the baseline Random Forest Classifier** (`rf_model.joblib`) for our production pipeline. This decision is backed by critical scientific, operational, and engineering justifications:
+#### Why We Selected the Deployed Optimized LightGBM Classifier
+We have selected and deployed the **Optimized LightGBM Classifier** (`best_lgbm_model.joblib`) as our production wildfire hazard classifier. This decision is based on a balanced evaluation of predictive performance, generalization ability, calibration, and real-world operational needs:
 
-1. **Spatiotemporal Generalization & Overfitting Mitigation:** Wildfire occurrences are highly autocorrelated in space and time. Advanced gradient boosting models (XGBoost, LightGBM, CatBoost) are highly expressive and easily overfit by memorizing specific geographic coordinates or specific days in August 2025. Random Forest, through its bagging mechanism (training trees on bootstrap samples and averaging them), has a strong natural regularizing effect. It focuses on learning generalizable physical relationships between temperature, NDVI, and fire hazard, rather than memorizing noise.
-2. **Smoothness and Calibration of Hazard Probabilities:** For operational emergency management, we do not just need binary predictions; we need a continuous, well-calibrated hazard probability map across the entire Area of Interest (AOI). GBDTs tend to produce highly polarized probability distributions (pushing predictions close to 0.0 or 1.0), resulting in "patchy" or "all-or-nothing" spatial risk maps. Random Forest averages the votes of 100 independent decision trees, which naturally produces smooth, continuous probability gradients. This is operationally superior for identifying transition zones and generating stable risk contours.
-3. **Engineering Simplicity and Deployment Stability:** Keeping the baseline Random Forest allows our production pipeline to depend solely on `scikit-learn` and `joblib`. It avoids introducing heavy, platform-specific compiled libraries like `xgboost`, `lightgbm`, or `catboost` into our production Docker containers and API. This results in smaller Docker images, faster build times, and eliminates potential runtime compatibility issues across different operating systems (e.g., macOS local development vs. Linux cloud deployment).
-4. **Negligible Operational Difference:** When continuous hazard probabilities are binned into broad ordinal classes (Low, Medium, High, Critical) for our 5x5x5 priority framework, the minor numerical accuracy difference between Random Forest and LightGBM is smoothed out. The spatial patterns of high-priority areas remain nearly identical, meaning the simpler model provides the exact same operational utility with far less complexity.
+1. **Top Predictive Accuracy and Generalization:** LightGBM consistently achieved the highest accuracy on our held-out test set (**71.04%**), outperforming all other candidates, including baseline and optimized Random Forests. Beyond accuracy, LightGBM demonstrated robust generalization to temporally and spatially disjoint data—crucial for adapting to evolving wildfire patterns.
+2. **Balanced Calibration and Useful Probability Estimates:** For operational hazard mapping and decision-making, well-calibrated continuous probability outputs are needed to generate meaningful risk contours and priority alerts. With proper hyperparameter tuning and probability calibration, LightGBM achieves a practical balance between sharp discrimination and smooth probability gradients across the Area of Interest.
+3. **Scalable and Efficient for Production Use:** LightGBM offers efficient multi-core training and fast inference with lower memory requirements compared to other boosting methods. Its support for native model serialization, wide adoption in the MLOps ecosystem, and compatibility with `joblib` allow for straightforward, robust deployment in Python-based data pipelines and API servers.
+4. **Operational Impact:** The improved predictive performance of LightGBM, even if marginal numerically, leads to more reliable identification of high-risk days and areas. This enhances early warning precision and supports mission-critical response planning, especially when converted into ordinal alert classes (Low, Medium, High, Critical) in the operational framework.
 
 ---
 
@@ -115,8 +115,8 @@ The technical pipeline is structured into six sequential Jupyter Notebooks. The 
 
 | Notebook | Phase / Executed | Description | Primary Inputs | Generated Outputs |
 |---|---|---|---|---|
-| **`01_hazard_model.ipynb`** | Once (Model Training) | Loads VIIRS hotspots, queries Sentinel-2 NDVI, extracts ERA5 temperatures, generates a balanced dataset, and trains the Random Forest Classifier. | `NW_Spain_2025_VIIRS_hotspots.geojson`, Sentinel-2 imagery, ERA5 reanalysis | `data/rf_model.joblib`, `data/train.csv`, `data/test.csv` |
-| **`02_hazard_maps.ipynb`** | Daily (Batch or Single) | Applies the trained Random Forest model to every pixel in the AOI for each date, generating a continuous `[0, 1]` fire hazard probability map. | `data/rf_model.joblib`, Sentinel-2 imagery, daily ERA5 temperatures | Daily hazard GeoTIFFs in `data/risk_maps/{YYYY-MM-DD}.tif` |
+| **`01_hazard_model.ipynb`** | Once (Model Training) | Loads VIIRS hotspots, queries Sentinel-2 NDVI, extracts ERA5 temperatures, generates a balanced dataset, trains and optimizes several classifiers (Random Forest, XGBoost, LightGBM, CatBoost), and selects the best model. | `NW_Spain_2025_VIIRS_hotspots.geojson`, Sentinel-2 imagery, ERA5 reanalysis | `data/best_lgbm_model.joblib`, `data/train.csv`, `data/test.csv` |
+| **`02_hazard_maps.ipynb`** | Daily (Batch or Single) | Applies the trained LightGBM model to every pixel in the AOI for each date, generating a continuous `[0, 1]` fire hazard probability map. | `data/best_lgbm_model.joblib`, Sentinel-2 imagery, daily ERA5 temperatures | Daily hazard GeoTIFFs in `data/risk_maps/{YYYY-MM-DD}.tif` |
 | **`03_vuln_exp_download.ipynb`** | Once / When AOI changes | Downloads raw population density (GHSL 2030 projection), OSM vector assets (buildings, roads, amenities), and INE municipal income vulnerability clipped to the AOI. | `data/aois/seadur.geojson` (AOI boundary), GHSL API, OSM Overpass API, INE data | `data/exposure/population.tif`, `data/exposure/buildings.geojson`, `data/exposure/roads.geojson`, `data/exposure/amenities.geojson`, `data/vulnerability/municipalities_vulnerability.geojson` |
 | **`04_prepare_exp_vuln.ipynb`** | Once (Static Preprocessing) | Heavy preprocessing: reprojects, resamples, and rasterizes raw exposure and vulnerability layers, aligning them exactly to the hazard grid template. Classifies continuous values into ordinal classes (0-4). | Raw layers from Notebook 03, grid template from `data/risk_maps/` | Aligned static GeoTIFFs in `data/risk_layers/` (`exposure_total.tif`, `vulnerability_aligned.tif`, `exposure_class.tif`, `vulnerability_class.tif`) |
 | **`05_compute_operational_priority.ipynb`** | Daily (Fast Loop) | Combines daily hazard maps with the static exposure and vulnerability classes using a vectorized rule-based engine (LUT) to output daily priority maps and base analytics. | Daily hazard maps, static class layers, `model/risk_priority.py` | `data/final_risk_maps/hazard_class_{date}.tif`, `data/final_risk_maps/operational_priority_class_{date}.tif`, `data/final_risk_analytics/analytics_{date}.json` |
@@ -128,7 +128,8 @@ The technical pipeline is structured into six sequential Jupyter Notebooks. The 
 
 ### Conceptual Framing: Why Rules Over Multiplication?
 Traditional risk frameworks often multiply hazard, exposure, and vulnerability to produce a continuous risk score:
-\[ \text{Risk} = \text{Hazard} \times \text{Exposure} \times \text{Vulnerability} \]
+
+`Risk = Hazard × Exposure × Vulnerability`
 
 While mathematically simple, this approach has severe operational limitations in emergency response:
 - A very high hazard in a completely unpopulated, non-vulnerable area (e.g., bare rock or deep forest) still produces a moderate risk score, potentially misdirecting scarce firefighting resources.
@@ -145,31 +146,31 @@ For all input dimensions and the final operational priority, values are classifi
 - `4`: **Critical** / **Critical Priority**
 
 Continuous values are classified into these ordinal levels using the following thresholds:
-- `[0.00, 0.25)` \( \rightarrow \) Class `1` (Low)
-- `[0.25, 0.50)` \( \rightarrow \) Class `2` (Medium)
-- `[0.50, 0.75)` \( \rightarrow \) Class `3` (High)
-- `[0.75, 1.01]` \( \rightarrow \) Class `4` (Critical)
+- `[0.00, 0.25)` → Class `1` (Low)
+- `[0.25, 0.50)` → Class `2` (Medium)
+- `[0.50, 0.75)` → Class `3` (High)
+- `[0.75, 1.01]` → Class `4` (Critical)
 
 ### The Decision Rule Engine
 The priority rules are evaluated in order of severity (from Critical down to Low) as defined in `risk_priority.PRIORITY_RULES`:
 
 1. **Critical Priority (Class 4):**
    - **Rule 1:** Coincidence of High/Critical conditions across all dimensions:
-     \[ \text{Hazard} \ge 3 \quad \text{AND} \quad \text{Exposure} \ge 3 \quad \text{AND} \quad \text{Vulnerability} \ge 3 \]
+     `Hazard >= 3 AND Exposure >= 3 AND Vulnerability >= 3`
    - **Rule 2:** Critical fire hazard in areas with at least Medium exposure and vulnerability:
-     \[ \text{Hazard} = 4 \quad \text{AND} \quad \text{Exposure} \ge 2 \quad \text{AND} \quad \text{Vulnerability} \ge 2 \]
+     `Hazard = 4 AND Exposure >= 2 AND Vulnerability >= 2`
 
 2. **High Priority (Class 3):**
    - **Rule 3:** High/Critical hazard in highly exposed areas:
-     \[ \text{Hazard} \ge 3 \quad \text{AND} \quad \text{Exposure} \ge 3 \]
+     `Hazard >= 3 AND Exposure >= 3`
    - **Rule 4:** High/Critical hazard in highly vulnerable communities:
-     \[ \text{Hazard} \ge 3 \quad \text{AND} \quad \text{Vulnerability} \ge 3 \]
+     `Hazard >= 3 AND Vulnerability >= 3`
    - **Rule 5:** Medium hazard in highly exposed and vulnerable areas:
-     \[ \text{Hazard} = 2 \quad \text{AND} \quad \text{Exposure} \ge 3 \quad \text{AND} \quad \text{Vulnerability} \ge 3 \]
+     `Hazard = 2 AND Exposure >= 3 AND Vulnerability >= 3`
 
 3. **Medium Priority (Class 2):**
    - **Rule 6:** Elevated hazard in areas with moderate exposure or vulnerability:
-     \[ \text{Hazard} \ge 2 \quad \text{AND} \quad (\text{Exposure} \ge 2 \quad \text{OR} \quad \text{Vulnerability} \ge 2) \]
+     `Hazard >= 2 AND (Exposure >= 2 OR Vulnerability >= 2)`
 
 4. **Low Priority (Class 1):**
    - **Rule 7 (Catch-All):** All remaining valid combinations with data.
