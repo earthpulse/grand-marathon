@@ -5,7 +5,9 @@ This technical report details the end-to-end machine learning and geospatial pip
 ## Section 1: Wildfire Events in the Area of Interest (AOI)
 
 ### The August 2025 Wildfire Wave in Galicia
+
 In August 2025, Galicia experienced one of the most severe wildfire crises in its recent history, with the province of **Ourense** serving as the absolute epicenter. According to official statistical reports published by the Galician Statistics Institute (IGE) and the Xunta de Galicia:
+
 - A total of **118,763.65 hectares** were burned across Galicia.
 - Of this total, **101,584.08 hectares** burned in the province of Ourense alone, representing approximately **85.5%** of the total burned area in the region.
 - For context, in 2024, only 2,644.70 hectares burned in Galicia (with 1,240.71 hectares in Ourense), highlighting the extreme and unprecedented scale of the 2025 wave.
@@ -13,62 +15,78 @@ In August 2025, Galicia experienced one of the most severe wildfire crises in it
 By mid-August, the Xunta de Galicia had declared **Situation 2** across the entire province of Ourense. This declaration enabled the rapid mobilization of regional, national, and state emergency resources, including Spain's Military Emergencies Unit (UME). Major active fire fronts during this period included Chandrexa de Queixa/Vilariño de Conso, Oímbra-A Granxa, A Mezquita-A Esculqueira, Maceda, Larouco-Seadur, Vilardevós, and Carballeda de Avia.
 
 ### The Larouco-Seadur Megafire
+
 The **Larouco-Seadur** wildfire was the largest and most devastating single event of the August 2025 wave. 
+
 - **Timeline:** The fire officially started on **August 13, 2025, at 18:55** in the parish of Seadur (Concello of Larouco, Ourense) and was declared fully extinguished on **August 31, 2025, at 13:23**.
 - **Burned Area:** The final official balance recorded **31,778.18 hectares** of affected land, consisting of **19,630.18 hectares of shrubland (monte raso)** and **12,148.00 hectares of woodland (arbolado)**.
 - **Geographical Spread:** Originating in Larouco (Valdeorras comarca, Ourense), the fire expanded rapidly across a massive arc, crossing the Sil River and entering the province of Lugo. It heavily affected the municipalities of Larouco, Quiroga, O Barco de Valdeorras, O Bolo, Carballeda de Valdeorras, A Rúa, Petín, Rubiá, A Veiga, and Vilamartín de Valdeorras. In Quiroga, the situation became critical as the fire advanced toward the Sierra de O Courel, threatening multiple small villages (such as Montefurado, Cereixido, and Vilarmel) and destroying the uninhabited hamlet of Ferreira.
 
 ### Human, Material, and Environmental Impact
+
 According to Civil Protection reports from October 2025, the Galician wildfires led to:
+
 - **3,353 evacuations** and **9,829 residents confined** to their homes due to smoke and fire risk.
 - **38 injuries**, including 24 injuries (mostly firefighters and emergency personnel) in the Oímbra fire alone.
 - Severe infrastructure disruptions, including **16 major road closures** and **4 railway line suspensions**.
 
 ### Drivers of the Crisis
+
 The extreme severity of the 2025 wildfires was driven by a combination of factors:
+
 1. **Meteorological Extremes:** A prolonged drought, record-breaking summer temperatures, and strong, shifting winds created a perfect storm for rapid fire propagation. A study by the **World Weather Attribution (WWA)** concluded that the extreme fire weather conditions in Spain and Portugal were made **40 times more likely** and **30% more intense** due to human-induced climate change.
 2. **Socio-Economic Factors:** Rural depopulation and the abandonment of traditional forest management led to a massive accumulation of highly flammable undergrowth (fuel load) in the Galician hills.
 3. **Ignition Sources:** Investigations pointed to both negligence and arson. In Oímbra, judicial investigations focused on heavy machinery clearing brush on an extreme-risk day. In Carballeda de Avia, the Civil Guard arrested a local resident suspected of starting a fire that consumed 3,200 hectares.
 
 ## Section 2: AI Hazard Model (Notebook 01)
 
-The foundation of the wildfire risk pipeline is an AI-driven **Hazard Model** developed in [`01_hazard_model.ipynb`](01_hazard_model.ipynb). This model predicts the daily probability of fire occurrence (hazard) across the Area of Interest.
+The foundation of the wildfire risk pipeline is an AI-driven **Hazard Model** developed in `[01_hazard_model.ipynb](01_hazard_model.ipynb)`. This model predicts the daily probability of fire occurrence (hazard) across the Area of Interest.
 
 ### Model Architecture
+
 The production hazard model is an **Optimized LightGBM Classifier** trained using `lightgbm` and `scikit-learn`. The model is designed to perform binary classification, outputting the probability that a given pixel on a given day is an active fire hotspot.
 
 ### Dataset Generation & Ground Truth
+
 To train the model, a balanced dataset was constructed using the `model/main.py` script:
+
 - **Positive Samples (label = 1):** Real-world active fire hotspots detected by the **VIIRS** satellite instrument during 2025, loaded from `NW_Spain_2025_VIIRS_hotspots.geojson`.
 - **Negative Samples (label = 0):** For every positive hotspot, a corresponding negative sample was generated at the **exact same geographical coordinates** but on a **temporal offset** (exactly one month before or after, staying within the same year). This approach ensures spatial consistency while capturing non-fire environmental and meteorological conditions.
 - **Resulting Dataset:** A perfectly balanced dataset (50% positive, 50% negative) consisting of thousands of samples.
 
 ### Model Features (Inputs)
+
 The model utilizes a combination of satellite-derived vegetation indices and reanalysis climate data:
-1. **`ndvi` (Normalized Difference Vegetation Index):** Computed from Sentinel-2 L2A satellite imagery. NDVI serves as a proxy for vegetation greenness, moisture content, and fuel dryness.
-2. **`t2m_1` to `t2m_5` (5-Day Temperature Lookback Series):** Daily mean 2-meter air temperature (in Kelvin) extracted from the **ERA5-Land reanalysis dataset**. To capture cumulative heat stress and fuel drying trends, the model looks back 5 days prior to the target date:
-   - `t2m_1`: Daily mean temperature at `acq_date - 5 days`
-   - `t2m_2`: Daily mean temperature at `acq_date - 4 days`
-   - `t2m_3`: Daily mean temperature at `acq_date - 3 days`
-   - `t2m_4`: Daily mean temperature at `acq_date - 2 days`
-   - `t2m_5`: Daily mean temperature at `acq_date - 1 day`
+
+1. `**ndvi` (Normalized Difference Vegetation Index):** Computed from Sentinel-2 L2A satellite imagery. NDVI serves as a proxy for vegetation greenness, moisture content, and fuel dryness.
+2. `**t2m_1` to `t2m_5` (5-Day Temperature Lookback Series):** Daily mean 2-meter air temperature (in Kelvin) extracted from the **ERA5-Land reanalysis dataset**. To capture cumulative heat stress and fuel drying trends, the model looks back 5 days prior to the target date:
+  - `t2m_1`: Daily mean temperature at `acq_date - 5 days`
+  - `t2m_2`: Daily mean temperature at `acq_date - 4 days`
+  - `t2m_3`: Daily mean temperature at `acq_date - 3 days`
+  - `t2m_4`: Daily mean temperature at `acq_date - 2 days`
+  - `t2m_5`: Daily mean temperature at `acq_date - 1 day`
 
 ### Model Performance and Evaluation
+
 The dataset was split into training and testing sets using an **80/20 stratified split** to maintain class balance. The deployed **Optimized LightGBM Classifier** achieves an outstanding test accuracy of **71.04%** (`0.7104`), an F1 Score of **73.50%** (`0.7350`), Precision of **69.00%** (`0.6900`), Recall of **78.63%** (`0.7863`), and an ROC AUC of **0.7757** (`0.7757`). It is serialized and saved to `data/best_lgbm_model.joblib` for downstream map generation.
 
 ### Model Selection and Comparative Analysis
+
 To ensure we selected the most robust and operationally sound model, we explored several alternative machine learning architectures and performed hyperparameter tuning using `RandomizedSearchCV` with 5-fold cross-validation.
 
 The table below summarizes the performance and tradeoffs of the different models evaluated:
 
-| Model | Test Accuracy (Baseline) | Test Accuracy (Optimized) | Pros | Cons |
-| :--- | :---: | :---: | :--- | :--- |
-| **Random Forest** | **64.37%** | **70.66%** | • Highly robust to noise and outliers.<br>• Bagging averages trees, producing smooth, continuous probability gradients.<br>• Simple, standard library (`scikit-learn`) with no extra heavy dependencies.<br>• Extremely stable and hard to overfit. | • Lower raw accuracy out-of-the-box compared to GBDTs.<br>• Model size can grow large with many estimators. |
-| **XGBoost** | **70.63%** | **70.65%** | • Excellent accuracy.<br>• Advanced regularization (L1/L2) prevents overfitting.<br>• Handles missing values natively. | • Slower training and hyperparameter tuning.<br>• Prone to overfitting on small datasets if not tuned carefully.<br>• Heavy external C++ library dependency. |
-| **LightGBM** | **70.14%** | **71.04%** | • **Highest accuracy (71.04%)**.<br>• Extremely fast training and low memory consumption.<br>• Highly scalable to large datasets. | • Leaf-wise growth can easily overfit on smaller datasets.<br>• Probabilities can be highly polarized (pushed to 0 or 1), making continuous risk mapping less smooth.<br>• Extra compiled library dependency. |
-| **CatBoost** | **70.90%** | **70.78%** | • Outstanding out-of-the-box performance.<br>• Built-in overfitting detection and regularization.<br>• Excellent handling of categorical features. | • Training can be slow on CPU.<br>• Very large library size and complex deployment dependency. |
+
+| Model             | Test Accuracy (Baseline) | Test Accuracy (Optimized) | Pros                                                                                                                                                                                                                                       | Cons                                                                                                                                                                                                    |
+| ----------------- | ------------------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Random Forest** | **64.37%**               | **70.66%**                | • Highly robust to noise and outliers. • Bagging averages trees, producing smooth, continuous probability gradients. • Simple, standard library (`scikit-learn`) with no extra heavy dependencies. • Extremely stable and hard to overfit. | • Lower raw accuracy out-of-the-box compared to GBDTs. • Model size can grow large with many estimators.                                                                                                |
+| **XGBoost**       | **70.63%**               | **70.65%**                | • Excellent accuracy. • Advanced regularization (L1/L2) prevents overfitting. • Handles missing values natively.                                                                                                                           | • Slower training and hyperparameter tuning. • Prone to overfitting on small datasets if not tuned carefully. • Heavy external C++ library dependency.                                                  |
+| **LightGBM**      | **70.14%**               | **71.04%**                | • **Highest accuracy (71.04%)**. • Extremely fast training and low memory consumption. • Highly scalable to large datasets.                                                                                                                | • Leaf-wise growth can easily overfit on smaller datasets. • Probabilities can be highly polarized (pushed to 0 or 1), making continuous risk mapping less smooth. • Extra compiled library dependency. |
+| **CatBoost**      | **70.90%**               | **70.78%**                | • Outstanding out-of-the-box performance. • Built-in overfitting detection and regularization. • Excellent handling of categorical features.                                                                                               | • Training can be slow on CPU. • Very large library size and complex deployment dependency.                                                                                                             |
+
 
 #### Why We Selected the Deployed Optimized LightGBM Classifier
+
 We have selected and deployed the **Optimized LightGBM Classifier** (`best_lgbm_model.joblib`) as our production wildfire hazard classifier. This decision is based on a balanced evaluation of predictive performance, generalization ability, calibration, and real-world operational needs:
 
 1. **Top Predictive Accuracy and Generalization:** LightGBM consistently achieved the highest accuracy on our held-out test set (**71.04%**), outperforming all other candidates, including baseline and optimized Random Forests. Beyond accuracy, LightGBM demonstrated robust generalization to temporally and spatially disjoint data—crucial for adapting to evolving wildfire patterns.
@@ -109,32 +127,38 @@ The technical pipeline is structured into six sequential Jupyter Notebooks. The 
 
 ### Detailed Notebook Directory and Outputs
 
-| Notebook | Phase / Executed | Description | Primary Inputs | Generated Outputs |
-|---|---|---|---|---|
-| **`01_hazard_model.ipynb`** | Once (Model Training) | Loads VIIRS hotspots, queries Sentinel-2 NDVI, extracts ERA5 temperatures, generates a balanced dataset, trains and optimizes several classifiers (Random Forest, XGBoost, LightGBM, CatBoost), and selects the best model. | `NW_Spain_2025_VIIRS_hotspots.geojson`, Sentinel-2 imagery, ERA5 reanalysis | `data/best_lgbm_model.joblib`, `data/train.csv`, `data/test.csv` |
-| **`02_hazard_maps.ipynb`** | Daily (Batch or Single) | Applies the trained LightGBM model to every pixel in the AOI for each date, generating a continuous `[0, 1]` fire hazard probability map. | `data/best_lgbm_model.joblib`, Sentinel-2 imagery, daily ERA5 temperatures | Daily hazard GeoTIFFs in `data/risk_maps/{YYYY-MM-DD}.tif` |
-| **`03_vuln_exp_download.ipynb`** | Once / When AOI changes | Downloads raw population density (GHSL 2030 projection), OSM vector assets (buildings, roads, amenities), and INE municipal income vulnerability clipped to the AOI. | `data/aois/seadur.geojson` (AOI boundary), GHSL API, OSM Overpass API, INE data | `data/exposure/population.tif`, `data/exposure/buildings.geojson`, `data/exposure/roads.geojson`, `data/exposure/amenities.geojson`, `data/vulnerability/municipalities_vulnerability.geojson` |
-| **`04_prepare_exp_vuln.ipynb`** | Once (Static Preprocessing) | Heavy preprocessing: reprojects, resamples, and rasterizes raw exposure and vulnerability layers, aligning them exactly to the hazard grid template. Classifies continuous values into ordinal classes (0-4). | Raw layers from Notebook 03, grid template from `data/risk_maps/` | Aligned static GeoTIFFs in `data/risk_layers/` (`exposure_total.tif`, `vulnerability_aligned.tif`, `exposure_class.tif`, `vulnerability_class.tif`) |
-| **`05_compute_operational_priority.ipynb`** | Daily (Fast Loop) | Combines daily hazard maps with the static exposure and vulnerability classes using a vectorized rule-based engine (LUT) to output daily priority maps and base analytics. | Daily hazard maps, static class layers, `model/risk_priority.py` | `data/final_risk_maps/hazard_class_{date}.tif`, `data/final_risk_maps/operational_priority_class_{date}.tif`, `data/final_risk_analytics/analytics_{date}.json` |
-| **`06_exposure_risk.ipynb`** | Daily (Fast Loop) | Risk enrichment: samples OSM vector assets (roads, buildings, amenities) against daily operational priority maps to identify specific assets at risk, and enriches the daily analytics JSON. | OSM vector assets, daily operational priority maps, daily base analytics JSON | `data/exposure/roads_with_risk.geojson`, `data/exposure/buildings_with_risk.geojson`, `data/exposure/amenities_with_risk.geojson`, `data/final_risk_analytics/analytics_with_risk_{date}.json` |
+
+| Notebook                                    | Phase / Executed            | Description                                                                                                                                                                                                                 | Primary Inputs                                                                  | Generated Outputs                                                                                                                                                                              |
+| ------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `**01_hazard_model.ipynb**`                 | Once (Model Training)       | Loads VIIRS hotspots, queries Sentinel-2 NDVI, extracts ERA5 temperatures, generates a balanced dataset, trains and optimizes several classifiers (Random Forest, XGBoost, LightGBM, CatBoost), and selects the best model. | `NW_Spain_2025_VIIRS_hotspots.geojson`, Sentinel-2 imagery, ERA5 reanalysis     | `data/best_lgbm_model.joblib`, `data/train.csv`, `data/test.csv`                                                                                                                               |
+| `**02_hazard_maps.ipynb**`                  | Daily (Batch or Single)     | Applies the trained LightGBM model to every pixel in the AOI for each date, generating a continuous `[0, 1]` fire hazard probability map.                                                                                   | `data/best_lgbm_model.joblib`, Sentinel-2 imagery, daily ERA5 temperatures      | Daily hazard GeoTIFFs in `data/risk_maps/{YYYY-MM-DD}.tif`                                                                                                                                     |
+| `**03_vuln_exp_download.ipynb**`            | Once / When AOI changes     | Downloads raw population density (GHSL 2030 projection), OSM vector assets (buildings, roads, amenities), and INE municipal income vulnerability clipped to the AOI.                                                        | `data/aois/seadur.geojson` (AOI boundary), GHSL API, OSM Overpass API, INE data | `data/exposure/population.tif`, `data/exposure/buildings.geojson`, `data/exposure/roads.geojson`, `data/exposure/amenities.geojson`, `data/vulnerability/municipalities_vulnerability.geojson` |
+| `**04_prepare_exp_vuln.ipynb**`             | Once (Static Preprocessing) | Heavy preprocessing: reprojects, resamples, and rasterizes raw exposure and vulnerability layers, aligning them exactly to the hazard grid template. Classifies continuous values into ordinal classes (0-4).               | Raw layers from Notebook 03, grid template from `data/risk_maps/`               | Aligned static GeoTIFFs in `data/risk_layers/` (`exposure_total.tif`, `vulnerability_aligned.tif`, `exposure_class.tif`, `vulnerability_class.tif`)                                            |
+| `**05_compute_operational_priority.ipynb**` | Daily (Fast Loop)           | Combines daily hazard maps with the static exposure and vulnerability classes using a vectorized rule-based engine (LUT) to output daily priority maps and base analytics.                                                  | Daily hazard maps, static class layers, `model/risk_priority.py`                | `data/final_risk_maps/hazard_class_{date}.tif`, `data/final_risk_maps/operational_priority_class_{date}.tif`, `data/final_risk_analytics/analytics_{date}.json`                                |
+| `**06_exposure_risk.ipynb**`                | Daily (Fast Loop)           | Risk enrichment: samples OSM vector assets (roads, buildings, amenities) against daily operational priority maps to identify specific assets at risk, and enriches the daily analytics JSON.                                | OSM vector assets, daily operational priority maps, daily base analytics JSON   | `data/exposure/roads_with_risk.geojson`, `data/exposure/buildings_with_risk.geojson`, `data/exposure/amenities_with_risk.geojson`, `data/final_risk_analytics/analytics_with_risk_{date}.json` |
+
 
 ---
 
 ## Section 4: Rule-Based Operational Priority Framework
 
 ### Conceptual Framing: Why Rules Over Multiplication?
+
 Traditional risk frameworks often multiply hazard, exposure, and vulnerability to produce a continuous risk score:
 
 `Risk = Hazard × Exposure × Vulnerability`
 
 While mathematically simple, this approach has severe operational limitations in emergency response:
+
 - A very high hazard in a completely unpopulated, non-vulnerable area (e.g., bare rock or deep forest) still produces a moderate risk score, potentially misdirecting scarce firefighting resources.
 - It fails to clearly distinguish situations like: *"The fire hazard is extreme, but the operational priority is low because there are no people or critical assets nearby."*
 
-To solve this, the Grand Marathon MVP implements a **decision-based, rule-based prioritization framework** using a **5×5×5 Lookup Table (LUT)** defined in [`model/risk_priority.py`](risk_priority.py). This maps every possible combination of ordinal classes directly to an operational priority.
+To solve this, the Grand Marathon MVP implements a **decision-based, rule-based prioritization framework** using a **5×5×5 Lookup Table (LUT)** defined in `[model/risk_priority.py](risk_priority.py)`. This maps every possible combination of ordinal classes directly to an operational priority.
 
 ### Ordinal Scale (0–4)
+
 For all input dimensions and the final operational priority, values are classified into five ordinal levels:
+
 - `0`: **No Data** (Outside the modeled area or missing inputs)
 - `1`: **Low** / **Low Priority**
 - `2`: **Medium** / **Medium Priority**
@@ -142,39 +166,40 @@ For all input dimensions and the final operational priority, values are classifi
 - `4`: **Critical** / **Critical Priority**
 
 Continuous values are classified into these ordinal levels using the following thresholds:
+
 - `[0.00, 0.25)` → Class `1` (Low)
 - `[0.25, 0.50)` → Class `2` (Medium)
 - `[0.50, 0.75)` → Class `3` (High)
 - `[0.75, 1.01]` → Class `4` (Critical)
 
 ### The Decision Rule Engine
+
 The priority rules are evaluated in order of severity (from Critical down to Low) as defined in `risk_priority.PRIORITY_RULES`:
 
 1. **Critical Priority (Class 4):**
-   - **Rule 1:** Coincidence of High/Critical conditions across all dimensions:
-     `Hazard >= 3 AND Exposure >= 3 AND Vulnerability >= 3`
-   - **Rule 2:** Critical fire hazard in areas with at least Medium exposure and vulnerability:
-     `Hazard = 4 AND Exposure >= 2 AND Vulnerability >= 2`
-
+  - **Rule 1:** Coincidence of High/Critical conditions across all dimensions:
+   `Hazard >= 3 AND Exposure >= 3 AND Vulnerability >= 3`
+  - **Rule 2:** Critical fire hazard in areas with at least Medium exposure and vulnerability:
+  `Hazard = 4 AND Exposure >= 2 AND Vulnerability >= 2`
 2. **High Priority (Class 3):**
-   - **Rule 3:** High/Critical hazard in highly exposed areas:
-     `Hazard >= 3 AND Exposure >= 3`
-   - **Rule 4:** High/Critical hazard in highly vulnerable communities:
-     `Hazard >= 3 AND Vulnerability >= 3`
-   - **Rule 5:** Medium hazard in highly exposed and vulnerable areas:
-     `Hazard = 2 AND Exposure >= 3 AND Vulnerability >= 3`
-
+  - **Rule 3:** High/Critical hazard in highly exposed areas:
+   `Hazard >= 3 AND Exposure >= 3`
+  - **Rule 4:** High/Critical hazard in highly vulnerable communities:
+  `Hazard >= 3 AND Vulnerability >= 3`
+  - **Rule 5:** Medium hazard in highly exposed and vulnerable areas:
+  `Hazard = 2 AND Exposure >= 3 AND Vulnerability >= 3`
 3. **Medium Priority (Class 2):**
-   - **Rule 6:** Elevated hazard in areas with moderate exposure or vulnerability:
-     `Hazard >= 2 AND (Exposure >= 2 OR Vulnerability >= 2)`
-
+  - **Rule 6:** Elevated hazard in areas with moderate exposure or vulnerability:
+   `Hazard >= 2 AND (Exposure >= 2 OR Vulnerability >= 2)`
 4. **Low Priority (Class 1):**
-   - **Rule 7 (Catch-All):** All remaining valid combinations with data.
+  - **Rule 7 (Catch-All):** All remaining valid combinations with data.
 
 ### Two-Phase Pipeline for High Performance
+
 Reprojecting population rasters, rasterizing thousands of OSM vector segments, and normalizing layers is highly CPU-intensive. If this work were repeated inside the daily loop, processing a single month would take hours.
 
 To ensure sub-second daily runtimes, the pipeline is split:
+
 1. **Static Preprocessing (Notebook 04 - Run Once):** Aligns exposure and vulnerability to the hazard grid and saves them as static GeoTIFFs in `data/risk_layers/`.
 2. **Daily Execution (Notebook 05 & 06 - Run Daily):** Loads the static GeoTIFFs and, for each date, simply reads the daily hazard raster, performs a fast vectorized lookup using the 5×5×5 LUT, and writes the outputs. This daily loop takes only a few seconds per date.
 
@@ -222,6 +247,7 @@ data/
 The pipeline outputs a flat, highly structured JSON file for each date in `data/final_risk_analytics/`. This format is optimized for direct consumption by the backend API and easily loads into pandas for time-series analysis:
 
 ### Example JSON Payload Fields
+
 - `analysis_date`: Target date of the analysis (e.g., `"2025-08-22"`).
 - `modeled_area_km2`: Total geographical area modeled inside the AOI.
 - `hazard_pct_low` to `hazard_pct_critical`: Percentage of the AOI area falling into each hazard class.
@@ -269,11 +295,13 @@ The next iteration expands the hazard model into a **unified, dual-mode classifi
 
 Fuel conditions are the slow-moving baseline of wildfire risk. Rather than relying on a single NDVI reading, this block characterises **how dry and how abundant** fuels are relative to recent history.
 
-| Feature | Source | Role |
-| :--- | :--- | :--- |
-| **NDVI percentile rank** | Sentinel-2 / CLMS | Ranks current NDVI against a **two-year historical window** at each pixel, producing a dryness *anomaly* rather than an absolute greenness value. Detects progressive drying trends well before ignition thresholds are reached. |
-| **FCOVER** | Copernicus Land Monitoring Service (CLMS) | Fractional vegetation cover — a direct proxy for **current fuel density** and canopy continuity that governs fire intensity potential. |
-| **12-month DMP accumulation** | CLMS Dry Matter Productivity | Rolling sum of net primary production over the past year, serving as a **fuel load proxy** that captures biomass accumulation from land abandonment and undergrowth build-up (a documented driver of the 2025 crisis). |
+
+| Feature                       | Source                                    | Role                                                                                                                                                                                                                             |
+| ----------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **NDVI percentile rank**      | Sentinel-2 / CLMS                         | Ranks current NDVI against a **two-year historical window** at each pixel, producing a dryness *anomaly* rather than an absolute greenness value. Detects progressive drying trends well before ignition thresholds are reached. |
+| **FCOVER**                    | Copernicus Land Monitoring Service (CLMS) | Fractional vegetation cover — a direct proxy for **current fuel density** and canopy continuity that governs fire intensity potential.                                                                                           |
+| **12-month DMP accumulation** | CLMS Dry Matter Productivity              | Rolling sum of net primary production over the past year, serving as a **fuel load proxy** that captures biomass accumulation from land abandonment and undergrowth build-up (a documented driver of the 2025 crisis).           |
+
 
 **Why it matters for Galicia:** Rural depopulation has left large areas of monte raso with thick, unmanaged undergrowth. A fuel block that tracks both *anomalous dryness* and *accumulated biomass* is essential for distinguishing "hot and dry but low fuel" from "hot, dry, and fuel-saturated" — the difference between a controllable ignition and a megafire.
 
@@ -281,10 +309,12 @@ Fuel conditions are the slow-moving baseline of wildfire risk. Rather than relyi
 
 Weather is the fast-moving trigger. This block replaces the MVP's temperature-only lookback with a multi-variable, multi-horizon representation of fire weather.
 
-| Feature Group | Variables | Aggregation Windows | Role |
-| :--- | :--- | :--- | :--- |
-| **ERA5 reanalysis** | `t2m`, total precipitation (`tp`), 10 m wind speed and direction (`u10`, `v10`), evaporation (`e`) | 1, 2, 5, and 10 days | Captures cumulative heat stress, moisture deficits, wind-driven spread potential, and evaporative drying across short- and medium-term horizons. |
-| **EFFIS fire danger indices** | Fire Weather Index (FWI), Fine Fuel Moisture Code (FFMC), Duff Moisture Code (DMC), Drought Code (DC) | Daily composites | Synthesise fuel moisture and atmospheric stress into operationally familiar danger scores already used by European fire agencies. |
+
+| Feature Group                 | Variables                                                                                             | Aggregation Windows  | Role                                                                                                                                             |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **ERA5 reanalysis**           | `t2m`, total precipitation (`tp`), 10 m wind speed and direction (`u10`, `v10`), evaporation (`e`)    | 1, 2, 5, and 10 days | Captures cumulative heat stress, moisture deficits, wind-driven spread potential, and evaporative drying across short- and medium-term horizons. |
+| **EFFIS fire danger indices** | Fire Weather Index (FWI), Fine Fuel Moisture Code (FFMC), Duff Moisture Code (DMC), Drought Code (DC) | Daily composites     | Synthesise fuel moisture and atmospheric stress into operationally familiar danger scores already used by European fire agencies.                |
+
 
 **Why it matters for Galicia:** The August 2025 wave was driven by prolonged drought, record temperatures, and shifting winds. A model that only sees temperature cannot distinguish a single hot day from a sustained heat dome, nor can it anticipate downwind propagation corridors.
 
@@ -292,10 +322,12 @@ Weather is the fast-moving trigger. This block replaces the MVP's temperature-on
 
 During an active megafire, the relevant question shifts from *"Will a fire start here?"* to *"Will the existing front reach here?"* This block supplies that context using **previous-day VIIRS hotspot detections**.
 
-| Feature | Computation | Role |
-| :--- | :--- | :--- |
-| **Hotspot proximity raster** | Exponential decay of distance to the nearest D−1 hotspot | Quantifies how close an active fire front is to each pixel. Values decay smoothly with distance, avoiding hard binary thresholds. |
-| **Hotspot azimuth raster** | Bearing from each pixel to the nearest D−1 hotspot | Encodes the **direction of the nearest active fire**, enabling the model to combine with wind features and identify likely downwind propagation corridors. |
+
+| Feature                      | Computation                                              | Role                                                                                                                                                       |
+| ---------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Hotspot proximity raster** | Exponential decay of distance to the nearest D−1 hotspot | Quantifies how close an active fire front is to each pixel. Values decay smoothly with distance, avoiding hard binary thresholds.                          |
+| **Hotspot azimuth raster**   | Bearing from each pixel to the nearest D−1 hotspot       | Encodes the **direction of the nearest active fire**, enabling the model to combine with wind features and identify likely downwind propagation corridors. |
+
 
 **Dual-mode behaviour:** These hotspot-derived features act as a **dynamic context switch** within a single unified model — no separate ignition and spread models are needed:
 
@@ -313,3 +345,4 @@ The following measures also planned to be included in order to expand the suite 
 3. **Temporal generalisation:** Performance on fire dates held out entirely from training (e.g., early-August vs. late-August 2025 splits) to verify the model adapts across the megafire lifecycle.
 4. **Dual-mode utility:** Separate evaluation of ignition-day pixels (no nearby D−1 hotspot) vs. propagation-day pixels (hotspot within a configurable radius), confirming that Block 3 improves spread prediction without degrading ignition detection.
 5. **Operational latency:** End-to-end daily map generation in `02_hazard_maps.ipynb` must remain within the sub-minute runtime target established by the static/daily pipeline split in Section 4.
+
