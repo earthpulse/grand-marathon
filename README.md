@@ -1,12 +1,16 @@
 # Grand Marathon: Wildfire Hazard & Operational Priority Platform
 
-[Deployed App](https://grand-marathon.earthpulse.ai/)
-
 Welcome to the **Grand Marathon** repository. This platform is an end-to-end machine learning and geospatial decision-support system designed to monitor daily wildfire hazard and compute operational response priorities. It was developed as an MVP validated against the catastrophic wildfire wave of August 2025 in Galicia, Spain.
 
 For detailed local setup, Docker instructions, and dataset downloading, please refer to **[instructions.md](instructions.md)**.
 
----
+This project was developed following an MVP-first approach, with priority given to delivering a complete operational platform rather than maximizing the sophistication of any single analytical component.
+
+During the challenge, development focused on building and validating the full risk, alert, confirm, and act workflow, including wildfire hazard prediction, exposure and vulnerability assessment, operational prioritization, geospatial analytics, backend services, and an interactive decision-support dashboard.
+
+The current hazard model represents the first operational implementation within this architecture and provides a validated baseline for the platform. The modular design allows individual capabilities to be progressively refined and expanded without requiring changes to the overall system.
+
+[Deployed App](https://grand-marathon.earthpulse.ai/)
 
 ## 1. The August 2025 Galicia Wildfire Crisis
 
@@ -18,8 +22,6 @@ The largest single event was the **Larouco-Seadur megafire**:
 - **Burned Area:** **31,778.18 hectares** (19,630 ha of shrubland and 12,148 ha of woodland).
 - **Impact:** Forced over 3,300 evacuations, confined nearly 10,000 residents, and caused widespread infrastructure and ecological damage.
 - **Drivers:** Prolonged drought, extreme heat stress (WWA estimated extreme fire weather was made **40x more likely** by climate change), and high fuel loads from rural land abandonment.
-
----
 
 ## 2. AI Wildfire Hazard Model
 
@@ -34,8 +36,6 @@ The core predictive engine is a machine learning model that estimates daily fire
 - **Model Selection & Tradeoffs:** After training and optimizing several candidate architectures (including Random Forest, XGBoost, LightGBM, and CatBoost), the **Optimized LightGBM Classifier** was selected and deployed for production. It delivers the highest predictive accuracy and generalization, maintains balanced calibration for smooth probability gradients, offers outstanding computational efficiency for daily map generation, and maximizes operational impact by providing the most reliable identification of high-risk areas. For a detailed comparative analysis and metrics, see the [model/README.md](model/README.md).
 
 You can find the code for the AI model in the [model/01_hazard_model.ipynb](model/01_hazard_model.ipynb) notebook. Next palnned steps to improve the model can also be found in [model/README.md](model/README.md).
-
----
 
 ## 3. Rule-Based Operational Priority Framework
 
@@ -60,8 +60,6 @@ To ensure sub-second daily runtimes, the pipeline is split into a **two-phase ar
 
 1. **Static Preprocessing (Run Once):** Heavy rasterization, reprojection, and alignment of population density (GHSL), OSM vector assets (roads, buildings, amenities), and municipal income vulnerability (INE) to the hazard grid template.
 2. **Daily Execution (Run Daily):** Vectorized LUT calculations that combine daily hazard maps with the pre-aligned static layers in seconds.
-
----
 
 ## 4. End-to-End Technical Pipeline
 
@@ -101,16 +99,12 @@ The workflow is divided into six sequential Jupyter Notebooks located in the `mo
 
 For a full technical and detailed report of the model, datasets, and pipeline, see the [Technical Report in model/README.md](model/README.md).
 
----
-
 ## 5. Repository Structure
 
 - `model/`: Jupyter Notebooks, training scripts, and the technical report for the machine learning and geospatial pipeline.
 - `api/`: FastAPI backend serving daily hazard maps, risk-enriched assets, and time-series analytics.
 - `dashboard/`: React / Vite frontend featuring an interactive map, daily alerts, and analytical charts.
 - `data/`: LFS-managed directory containing raw inputs, daily hazard GeoTIFFs, pre-calculated layers, and output JSON summaries.
-
----
 
 ## 6. Quick Start
 
@@ -122,3 +116,16 @@ To run the entire application locally using Docker Compose:
 4. Open the frontend at [http://localhost:5173](http://localhost:5173) and the API docs at [http://localhost:8000/docs](http://localhost:8000/docs).
 
 For step-by-step instructions, see **[instructions.md](instructions.md)**.
+
+## 7. Platform Roadmap
+
+The current MVP focuses on wildfire hazard prediction and operational prioritization. The broader platform vision extends across the full wildfire management lifecycle, from early risk identification and operational preparedness to active incident monitoring and post-event impact assessment.
+
+Future development efforts may focus on:
+
+- Increasing predictive accuracy through additional environmental variables and larger historical wildfire datasets, including nationwide records and European wildfire archives.
+Extending the platform from hazard prediction to fire propagation analysis, enabling operational teams to assess not only where a wildfire is likely to occur, but also how it may evolve once active.
+- Incorporating burned-area delineation, fire footprint reconstruction, and impact assessment capabilities using Earth Observation data acquired before, during, and after wildfire events.
+- Leveraging both optical and SAR satellite imagery, together with high-resolution commercial Earth Observation data, to improve monitoring capabilities and damage assessment under a wider range of operational conditions.
+- Benchmarking and validating platform outputs against established wildfire monitoring systems and services, including EFFIS and Copernicus products.
+- Expanding operational analytics and decision-support capabilities through continued stakeholder engagement, co-design activities, and real-world operational validation.
