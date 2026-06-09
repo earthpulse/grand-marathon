@@ -58,8 +58,8 @@ To train the model, a balanced dataset was constructed using the `model/main.py`
 
 The model utilizes a combination of satellite-derived vegetation indices and reanalysis climate data:
 
-1. `**ndvi` (Normalized Difference Vegetation Index):** Computed from Sentinel-2 L2A satellite imagery. NDVI serves as a proxy for vegetation greenness, moisture content, and fuel dryness.
-2. `**t2m_1` to `t2m_5` (5-Day Temperature Lookback Series):** Daily mean 2-meter air temperature (in Kelvin) extracted from the **ERA5-Land reanalysis dataset**. To capture cumulative heat stress and fuel drying trends, the model looks back 5 days prior to the target date:
+1. `ndvi` (Normalized Difference Vegetation Index): Computed from Sentinel-2 L2A satellite imagery. NDVI serves as a proxy for vegetation greenness, moisture content, and fuel dryness.
+2. `t2m_1` to `t2m_5` (5-Day Temperature Lookback Series): Daily mean 2-meter air temperature (in Kelvin) extracted from the **ERA5-Land reanalysis dataset**. To capture cumulative heat stress and fuel drying trends, the model looks back 5 days prior to the target date:
   - `t2m_1`: Daily mean temperature at `acq_date - 5 days`
   - `t2m_2`: Daily mean temperature at `acq_date - 4 days`
   - `t2m_3`: Daily mean temperature at `acq_date - 3 days`
