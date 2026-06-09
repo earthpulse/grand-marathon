@@ -1,0 +1,31 @@
+@import "leaflet/dist/leaflet.css";
+
+#map {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 0;
+  border-radius: 10px;
+}
+
+/* Custom styling for Leaflet Popups to match modern Tailwind style */
+.leaflet-popup-content-wrapper {
+  border-radius: 8px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid #e2e8f0;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.leaflet-popup-content {
+  margin: 12px 16px !important;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+}
+
+.leaflet-popup-close-button {
+  display: none !important; /* Hide close button as popups are hover-based */
+}
+
+.leaflet-popup-tip-container {
+  display: none !important; /* Hide popup tip pointer for cleaner hover card style */
+}

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Incident Report</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1.5cm;
+            @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                font-size: 8pt;
+                color: #94a3b8;
+            }
+            @bottom-left {
+                content: "Earthpulse Incident Command";
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                font-size: 8pt;
+                color: #94a3b8;
+                font-weight: bold;
+            }
+        }
+        
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            line-height: 1.5;
+            font-size: 10pt;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1, h2, h3, h4 {
+            color: #0f172a;
+            margin-top: 0;
+        }
+
+        .header {
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .header-title-container {
+            display: table;
+            width: 100%;
+        }
+
+        .header-title {
+            display: table-cell;
+            vertical-align: middle;
+        }
+
+        .header-title h1 {
+            font-size: 22pt;
+            font-weight: 900;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .header-title p {
+            color: #64748b;
+            font-size: 10pt;
+            margin: 5px 0 0 0;
+        }
+
+        .kpi-container {
+            display: table;
+            width: 100%;
+            margin-bottom: 30px;
+            table-layout: fixed;
+            border-spacing: 10px 0;
+            margin-left: -10px;
+            margin-right: -10px;
+        }
+
+        .kpi-card {
+            display: table-cell;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .kpi-label {
+            font-size: 7pt;
+            font-weight: bold;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .kpi-value {
+            font-size: 16pt;
+            font-weight: 900;
+            color: #0f172a;
+            line-height: 1;
+        }
+
+        .kpi-sub {
+            font-size: 8pt;
+            color: #64748b;
+            margin-left: 4px;
+        }
+
+        .day-section {
+            page-break-inside: avoid;
+            margin-bottom: 35px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #ffffff;
+            padding: 20px;
+        }
+
+        .day-header {
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        .day-header h2 {
+            font-size: 14pt;
+            font-weight: 900;
+            margin: 0;
+            color: #0f172a;
+        }
+
+        .day-tag {
+            display: inline-block;
+            font-size: 8pt;
+            font-weight: bold;
+            color: #0f766e;
+            background: #e6f4f1;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-top: 4px;
+        }
+
+        .events-count {
+            float: right;
+            font-size: 8pt;
+            font-weight: bold;
+            color: #94a3b8;
+            text-transform: uppercase;
+            margin-top: 8px;
+        }
+
+        .timeline {
+            border-left: 2px solid #f1f5f9;
+            margin-left: 15px;
+            padding-left: 20px;
+        }
+
+        .event-item {
+            position: relative;
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+
+        .event-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .event-dot {
+            position: absolute;
+            left: -31px;
+            top: 2px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #cbd5e1;
+            text-align: center;
+            line-height: 18px;
+            font-size: 10pt;
+        }
+
+        .event-dot.critical {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .event-dot.warning {
+            border-color: #f59e0b;
+            background: #fffbeb;
+        }
+
+        .event-dot.info {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .event-dot.response {
+            border-color: #6366f1;
+            background: #e0e7ff;
+        }
+
+        .event-time {
+            font-size: 8pt;
+            font-weight: bold;
+            color: #94a3b8;
+            margin-bottom: 2px;
+            display: block;
+        }
+
+        .event-card {
+            background: #f8fafc;
+            border: 1px solid #f1f5f9;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .event-header {
+            display: table;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .event-title-area {
+            display: table-cell;
+        }
+
+        .event-title {
+            font-size: 10.5pt;
+            font-weight: bold;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        .event-subtitle {
+            font-size: 9pt;
+            font-weight: bold;
+            color: #0f766e;
+            margin: 2px 0 0 0;
+        }
+
+        .event-badge-area {
+            display: table-cell;
+            text-align: right;
+            vertical-align: top;
+        }
+
+        .badge {
+            display: inline-block;
+            font-size: 7.5pt;
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 12px;
+            border: 1px solid transparent;
+        }
+
+        .badge.critical {
+            background: #fef2f2;
+            color: #991b1b;
+            border-color: #fee2e2;
+        }
+
+        .badge.warning {
+            background: #fffbeb;
+            color: #92400e;
+            border-color: #fef3c7;
+        }
+
+        .badge.info {
+            background: #eff6ff;
+            color: #1e40af;
+            border-color: #dbeafe;
+        }
+
+        .badge.completed {
+            background: #ecfdf5;
+            color: #065f46;
+            border-color: #d1fae5;
+        }
+
+        .badge.in_progress {
+            background: #fffbeb;
+            color: #92400e;
+            border-color: #fef3c7;
+        }
+
+        .badge.pending {
+            background: #f5f5f7;
+            color: #52525b;
+            border-color: #e4e4e7;
+        }
+
+        .event-desc {
+            font-size: 9pt;
+            color: #475569;
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        .event-coords {
+            margin-top: 8px;
+            font-size: 8pt;
+            font-weight: bold;
+            color: #64748b;
+        }
+
+        .event-coords code {
+            background: #e2e8f0;
+            color: #334155;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 8.5pt;
+        }
+
+        .audit-section {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed #e2e8f0;
+        }
+
+        .audit-title {
+            font-size: 7.5pt;
+            font-weight: bold;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .changes-grid {
+            display: block;
+        }
+
+        .change-row {
+            display: inline-block;
+            background: #ffffff;
+            border: 1px solid #f1f5f9;
+            border-radius: 4px;
+            padding: 4px 8px;
+            margin-right: 8px;
+            margin-bottom: 6px;
+            font-size: 8.5pt;
+        }
+
+        .change-field {
+            font-weight: bold;
+            color: #64748b;
+            text-transform: capitalize;
+        }
+
+        .change-old {
+            color: #94a3b8;
+            text-decoration: line-through;
+            margin: 0 4px;
+        }
+
+        .change-arrow {
+            color: #94a3b8;
+            margin: 0 2px;
+        }
+
+        .change-new {
+            font-weight: bold;
+            color: #0f766e;
+            background: #e6f4f1;
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Panel -->
+    <div class="header">
+        <div class="header-title-container">
+            <div class="header-title">
+                <h1>Environmental Incident Report</h1>
+                <p>An auditable daily breakdown of environmental alerts, severity progressions, and tactical responses.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI Scorecards -->
+    <div class="kpi-container">
+        <div class="kpi-card">
+            <span class="kpi-label">Total Alerts</span>
+            <div class="kpi-value">{{ total_alerts }}<span class="kpi-sub">registered</span></div>
+        </div>
+        <div class="kpi-card" style="border-left-color: #ef4444; border-left-width: 3px;">
+            <span class="kpi-label" style="color: #ef4444;">Active Threats</span>
+            <div class="kpi-value" style="color: #ef4444;">{{ active_alerts }}<span class="kpi-sub">active</span></div>
+        </div>
+        <div class="kpi-card" style="border-left-color: #10b981; border-left-width: 3px;">
+            <span class="kpi-label" style="color: #10b981;">Resolved Hazards</span>
+            <div class="kpi-value" style="color: #10b981;">{{ resolved_alerts }}<span class="kpi-sub">safe</span></div>
+        </div>
+        <div class="kpi-card" style="border-left-color: #6366f1; border-left-width: 3px;">
+            <span class="kpi-label" style="color: #6366f1;">Tactical Responses</span>
+            <div class="kpi-value" style="color: #6366f1;">{{ total_actions }}<span class="kpi-sub">deployed</span></div>
+        </div>
+    </div>
+
+    <!-- Daily Grouped Timeline -->
+    <div class="timeline-container">
+        {% if not groups %}
+            <div style="text-align: center; padding: 40px; border: 1px dashed #e2e8f0; border-radius: 8px;">
+                <h3 style="margin: 0; color: #64748b;">No historical events recorded</h3>
+                <p style="margin: 5px 0 0 0; font-size: 9pt; color: #94a3b8;">Environmental logging returns clear.</p>
+            </div>
+        {% else %}
+            {% for group in groups %}
+                <div class="day-section">
+                    <div class="day-header">
+                        <span class="events-count">{{ group.events|length }} {% if group.events|length == 1 %}event{% else %}events{% endif %}</span>
+                        <h2>{{ group.formatted_date }}</h2>
+                        <span class="day-tag">{{ group.day }}</span>
+                    </div>
+
+                    <div class="timeline">
+                        {% for event in group.events %}
+                            <div class="event-item">
+                                <!-- Event Node Dot Indicator -->
+                                <div class="event-dot {% if event.type == 'alert_create' %}{{ event.severity }}{% elif event.type == 'action_deploy' %}response{% else %}info{% endif %}">
+                                    {% if event.type == 'alert_create' %}
+                                        🚨
+                                    {% elif event.type == 'alert_update' %}
+                                        🔄
+                                    {% elif event.type == 'action_deploy' %}
+                                        🚒
+                                    {% else %}
+                                        📋
+                                    {% endif %}
+                                </div>
+
+                                <!-- Event Body -->
+                                <div class="event-card">
+                                    <div class="event-header">
+                                        <div class="event-title-area">
+                                            <span class="event-time">{{ event.time_str }}</span>
+                                            <h3 class="event-title">{{ event.title }}</h3>
+                                            <p class="event-subtitle">{{ event.subtitle }}</p>
+                                        </div>
+                                        <div class="event-badge-area">
+                                            {% if event.severity and event.category == 'hazard' %}
+                                                <span class="badge {{ event.severity }}">{{ event.severity }}</span>
+                                            {% endif %}
+                                            {% if event.type == 'action_deploy' %}
+                                                <span class="badge {{ event.meta.status }}">{{ event.meta.status }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <p class="event-desc">{{ event.description }}</p>
+
+                                    <!-- Spatial metadata -->
+                                    {% if event.latitude and event.longitude and event.type == 'alert_create' %}
+                                        <div class="event-coords">
+                                            <span>📍 Coordinates:</span>
+                                            <code>{{ "%.4f"|format(event.latitude) }}, {{ "%.4f"|format(event.longitude) }}</code>
+                                        </div>
+                                    {% endif %}
+
+                                    <!-- Audit changes what changed block -->
+                                    {% if event.changes and event.changes|length > 0 %}
+                                        <div class="audit-section">
+                                            <span class="audit-title">Audit Changes</span>
+                                            <div class="changes-grid">
+                                                {% for change in event.changes %}
+                                                    <div class="change-row">
+                                                        <span class="change-field">{{ change.field }}:</span>
+                                                        <span class="change-old">{{ change.old_value or 'None' }}</span>
+                                                        <span class="change-arrow">➡️</span>
+                                                        <span class="change-new">{{ change.new_value }}</span>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+</body>
+</html>
