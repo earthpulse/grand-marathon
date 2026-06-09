@@ -25,11 +25,11 @@ The largest single event was the **Larouco-Seadur megafire**:
 
 The core predictive engine is a machine learning model that estimates daily fire hazard probabilities across the Area of Interest (AOI):
 
-- **Model:** An **Optimized LightGBM Classifier** (`best_lgbm_model.joblib`) trained on a balanced dataset (50% positive fire events, 50% negative non-fire events).
+- **Model:** An **Optimized LightGBM Classifier** trained on a fire events dataset.
 - **Ground Truth:** Real-world active fire hotspots detected by the **VIIRS** satellite instrument in 2025.
 - **Features (Inputs):**
-  1. `**ndvi` (Normalized Difference Vegetation Index):** Derived from Sentinel-2 L2A satellite imagery to measure fuel dryness and vegetation health.
-  2. `**t2m_1` to `t2m_5` (5-Day Temperature Series):** Daily mean 2-meter air temperatures from **ERA5-Land reanalysis** looking back 5 days to capture cumulative heat stress.
+  1. `ndvi` (Normalized Difference Vegetation Index): Derived from Sentinel-2 L2A satellite imagery to measure fuel dryness and vegetation health.
+  2. `t2m_1` to `t2m_5` (5-Day Temperature Series): Daily mean 2-meter air temperatures from **ERA5-Land reanalysis** looking back 5 days to capture cumulative heat stress.
 - **Performance:** Achieved a stratified test accuracy of **71.04%** (with an F1 Score of **73.50%**, Precision of **69.00%**, Recall of **78.63%**, and ROC AUC of **0.7757**).
 - **Model Selection & Tradeoffs:** After training and optimizing several candidate architectures (including Random Forest, XGBoost, LightGBM, and CatBoost), the **Optimized LightGBM Classifier** was selected and deployed for production. It delivers the highest predictive accuracy and generalization, maintains balanced calibration for smooth probability gradients, offers outstanding computational efficiency for daily map generation, and maximizes operational impact by providing the most reliable identification of high-risk areas. For a detailed comparative analysis and metrics, see the **[model/README.md](model/README.md)**.
 
@@ -68,7 +68,7 @@ The workflow is divided into six sequential Jupyter Notebooks located in the `mo
 ```text
 +-------------------------+      +-------------------------+
 |  01_hazard_model.ipynb  | ---> |  02_hazard_maps.ipynb   |
-|  (Trains RF Classifier) |      | (Generates Daily Hazard)|
+|  (Trains AI Model) |      | (Generates Daily Hazard)|
 +-------------------------+      +------------+------------+
                                               |
                                               v  [Daily Hazard Maps]
@@ -90,14 +90,14 @@ The workflow is divided into six sequential Jupyter Notebooks located in the `mo
                                  +-------------------------+
 ```
 
-1. `01_hazard_model.ipynb`**:** Generates the training dataset and trains the AI model.
-2. `02_hazard_maps.ipynb`**:** Generates daily continuous hazard maps for the AOI.
-3. `**03_vuln_exp_download.ipynb`:** Downloads raw population (GHSL), OSM assets, and municipal vulnerability (INE).
-4. `**04_prepare_exp_vuln.ipynb`:** Reprojects, rasterizes, and aligns static exposure and vulnerability layers to the hazard grid.
-5. `**05_compute_operational_priority.ipynb`:** Computes daily classified hazard and operational priority maps, generating base analytics.
-6. `**06_exposure_risk.ipynb`:** Samples specific OSM assets (buildings, roads, amenities) against daily priority maps to output risk-enriched vector layers and enriched analytics JSONs.
+1. `01_hazard_model.ipynb`: Generates the training dataset and trains the AI model.
+2. `02_hazard_maps.ipynb`: Generates daily continuous hazard maps for the AOI.
+3. `03_vuln_exp_download.ipynb`: Downloads raw population (GHSL), OSM assets, and municipal vulnerability (INE).
+4. `04_prepare_exp_vuln.ipynb`: Reprojects, rasterizes, and aligns static exposure and vulnerability layers to the hazard grid.
+5. `05_compute_operational_priority.ipynb`: Computes daily classified hazard and operational priority maps, generating base analytics.
+6. `06_exposure_risk.ipynb`: Samples specific OSM assets (buildings, roads, amenities) against daily priority maps to output risk-enriched vector layers and enriched analytics JSONs.
 
-For a full technical and detailed report of the model, datasets, and pipeline, see the **[Technical Report in model/README.md](model/README.md)**.
+For a full technical and detailed report of the model, datasets, and pipeline, see the [Technical Report in model/README.md](model/README.md).
 
 ---
 
