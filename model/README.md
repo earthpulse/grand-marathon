@@ -231,3 +231,85 @@ The pipeline outputs a flat, highly structured JSON file for each date in `data/
 - `diag_pct_high_hazard_low_priority`: Diagnostic metric showing the percentage of high-hazard areas that have low priority due to lack of exposure (useful for resource optimization).
 - `summary`: A natural language summary explaining the operational context of the day (e.g., *"Wildfire hazard is widespread, but operational priority stays low where exposure and vulnerability are limited."*).
 - `at_risk_assets`: Enriched counts of buildings, roads (meters), and amenities falling under High or Critical priority on that day.
+
+## Section 7: Next Steps to Improve the Model
+
+The propsed model is intentionally lean: it uses a single **NDVI** snapshot and a **5-day temperature lookback** (`t2m_1`–`t2m_5`). That design proved the end-to-end pipeline and delivered actionable results with VIIRS-labeled hotspots, but it leaves several known gaps:
+
+- **Fuel state is under-specified.** A point-in-time NDVI value does not distinguish a normal dry season from an anomalous drought, nor does it quantify accumulated fuel load.
+- **Weather coverage is narrow.** Temperature alone misses precipitation deficits, wind-driven spread, and evaporation stress — all dominant drivers during the August 2025 wave.
+- **Ignition and propagation are conflated.** The model treats every pixel the same regardless of whether an active fire front is already nearby, limiting usefulness during ongoing megafire events like Larouco-Seadur.
+
+The next iteration expands the hazard model into a **unified, dual-mode classifier** that predicts daily per-pixel fire probability at **300 m resolution** by integrating three complementary feature blocks. The blocks below preserve the intent of the current design while making each layer explicit, traceable to data sources, and actionable for implementation.
+
+### Target Architecture: Three Feature Blocks
+
+```text
++---------------------------+     +---------------------------+     +---------------------------+
+|  Block 1: Fuel            |     |  Block 2: Atmosphere      |     |  Block 3: Propagation     |
+|  Susceptibility (CLMS)    |     |  Fire Danger (ERA5+EFFIS) |     |  Context (VIIRS D-1)      |
++---------------------------+     +---------------------------+     +---------------------------+
+| • NDVI percentile rank    |     | • t2m, tp, wind, evap     |     | • Hotspot proximity       |
+|   (2-yr historical)       |     |   (1/2/5/10-day windows)  |     |   (exponential decay)     |
+| • FCOVER (fuel density)   |     | • FWI, FFMC, DMC, DC      |     | • Hotspot azimuth         |
+| • 12-month DMP accum.     |     |   (EFFIS composites)      |     |   (spread direction)      |
++---------------------------+     +---------------------------+     +---------------------------+
+              \                            |                                /
+               \                           |                               /
+                +--------------------------+------------------------------+
+                                           |
+                                           v
+                              +---------------------------+
+                              |  Unified LightGBM Model   |
+                              |  (Ignition OR Propagation)|
+                              +---------------------------+
+```
+
+#### Block 1: Fuel Susceptibility (CLMS Vegetation Products)
+
+Fuel conditions are the slow-moving baseline of wildfire risk. Rather than relying on a single NDVI reading, this block characterises **how dry and how abundant** fuels are relative to recent history.
+
+| Feature | Source | Role |
+| :--- | :--- | :--- |
+| **NDVI percentile rank** | Sentinel-2 / CLMS | Ranks current NDVI against a **two-year historical window** at each pixel, producing a dryness *anomaly* rather than an absolute greenness value. Detects progressive drying trends well before ignition thresholds are reached. |
+| **FCOVER** | Copernicus Land Monitoring Service (CLMS) | Fractional vegetation cover — a direct proxy for **current fuel density** and canopy continuity that governs fire intensity potential. |
+| **12-month DMP accumulation** | CLMS Dry Matter Productivity | Rolling sum of net primary production over the past year, serving as a **fuel load proxy** that captures biomass accumulation from land abandonment and undergrowth build-up (a documented driver of the 2025 crisis). |
+
+**Why it matters for Galicia:** Rural depopulation has left large areas of monte raso with thick, unmanaged undergrowth. A fuel block that tracks both *anomalous dryness* and *accumulated biomass* is essential for distinguishing "hot and dry but low fuel" from "hot, dry, and fuel-saturated" — the difference between a controllable ignition and a megafire.
+
+#### Block 2: Atmospheric Fire Danger (ERA5 + EFFIS)
+
+Weather is the fast-moving trigger. This block replaces the MVP's temperature-only lookback with a multi-variable, multi-horizon representation of fire weather.
+
+| Feature Group | Variables | Aggregation Windows | Role |
+| :--- | :--- | :--- | :--- |
+| **ERA5 reanalysis** | `t2m`, total precipitation (`tp`), 10 m wind speed and direction (`u10`, `v10`), evaporation (`e`) | 1, 2, 5, and 10 days | Captures cumulative heat stress, moisture deficits, wind-driven spread potential, and evaporative drying across short- and medium-term horizons. |
+| **EFFIS fire danger indices** | Fire Weather Index (FWI), Fine Fuel Moisture Code (FFMC), Duff Moisture Code (DMC), Drought Code (DC) | Daily composites | Synthesise fuel moisture and atmospheric stress into operationally familiar danger scores already used by European fire agencies. |
+
+**Why it matters for Galicia:** The August 2025 wave was driven by prolonged drought, record temperatures, and shifting winds. A model that only sees temperature cannot distinguish a single hot day from a sustained heat dome, nor can it anticipate downwind propagation corridors.
+
+#### Block 3: Fire Propagation Context (VIIRS Active Fire, D−1)
+
+During an active megafire, the relevant question shifts from *"Will a fire start here?"* to *"Will the existing front reach here?"* This block supplies that context using **previous-day VIIRS hotspot detections**.
+
+| Feature | Computation | Role |
+| :--- | :--- | :--- |
+| **Hotspot proximity raster** | Exponential decay of distance to the nearest D−1 hotspot | Quantifies how close an active fire front is to each pixel. Values decay smoothly with distance, avoiding hard binary thresholds. |
+| **Hotspot azimuth raster** | Bearing from each pixel to the nearest D−1 hotspot | Encodes the **direction of the nearest active fire**, enabling the model to combine with wind features and identify likely downwind propagation corridors. |
+
+**Dual-mode behaviour:** These hotspot-derived features act as a **dynamic context switch** within a single unified model — no separate ignition and spread models are needed:
+
+- **Ignition mode** (no nearby hotspot): Block 1 (fuel) and Block 2 (weather) dominate; the model weighs dryness anomaly, fuel load, and fire-weather stress.
+- **Propagation mode** (hotspot in neighbourhood): Attention shifts toward spread pathways — proximity, azimuth, wind direction, and topographic exposure jointly determine whether the existing front is likely to advance into a given pixel.
+
+This dual-mode architecture, covering both ignition susceptibility and spread risk within a single inference pass, is the core differentiating factor of the approach.
+
+### Evaluation Criteria
+
+The following measures also planned to be included in order to expand the suite of metrics to evaluate the model:
+
+1. **Discrimination:** ROC AUC and F1 on a held-out test set with the same 80/20 stratified split methodology.
+2. **Calibration:** Reliability diagrams and Brier score — critical for converting continuous probabilities into the Low/Medium/High/Critical ordinal classes used by the LUT engine.
+3. **Temporal generalisation:** Performance on fire dates held out entirely from training (e.g., early-August vs. late-August 2025 splits) to verify the model adapts across the megafire lifecycle.
+4. **Dual-mode utility:** Separate evaluation of ignition-day pixels (no nearby D−1 hotspot) vs. propagation-day pixels (hotspot within a configurable radius), confirming that Block 3 improves spread prediction without degrading ignition detection.
+5. **Operational latency:** End-to-end daily map generation in `02_hazard_maps.ipynb` must remain within the sub-minute runtime target established by the static/daily pipeline split in Section 4.

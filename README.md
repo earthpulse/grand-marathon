@@ -33,7 +33,7 @@ The core predictive engine is a machine learning model that estimates daily fire
 - **Performance:** Achieved a stratified test accuracy of **71.04%** (with an F1 Score of **73.50%**, Precision of **69.00%**, Recall of **78.63%**, and ROC AUC of **0.7757**).
 - **Model Selection & Tradeoffs:** After training and optimizing several candidate architectures (including Random Forest, XGBoost, LightGBM, and CatBoost), the **Optimized LightGBM Classifier** was selected and deployed for production. It delivers the highest predictive accuracy and generalization, maintains balanced calibration for smooth probability gradients, offers outstanding computational efficiency for daily map generation, and maximizes operational impact by providing the most reliable identification of high-risk areas. For a detailed comparative analysis and metrics, see the [model/README.md](model/README.md).
 
-You can find the code for the AI model in the [model/01_hazard_model.ipynb](model/01_hazard_model.ipynb) notebook.
+You can find the code for the AI model in the [model/01_hazard_model.ipynb](model/01_hazard_model.ipynb) notebook. Next palnned steps to improve the model can also be found in [model/README.md](model/README.md).
 
 ---
 
